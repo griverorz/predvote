@@ -72,18 +72,27 @@ testing <- setdiff(row.names(impprel), training)
 training <- impprel[row.names(impprel) %in% training, ]
 testing <- impprel[row.names(impprel) %in% testing, ]
 
-## model formula
-mform <- ~ ideo + factor(simpatia) + edad + factor(educ) +
-    ppgestion + psoeop + factor(europ) + 
-    factor(sitlab) + sexo + factor(CCAA)
-Mtraining <- model.matrix(mform, data=training)
+## Build data                                                   
+my_model <-  ~ ideo + factor(simpatia) + edad + factor(educ) +  
+  ppgestion + psoeop + factor(europ) +                          
+  factor(sitlab) + sexo + factor(recvoto) + factor(CCAA)        
+                                                                
 
-## training
-mmodel <- randomForest(y=factor(training$voto), x=Mtraining, ntree=500)
-## testing
-pmodel <- predict(mmodel, newdata=testing)
-## full data
-tmodel <- predict(mmodel, newdata=target)
+Mtraining <- model.matrix(my_model, data = training)                            
+Mtesting <- model.matrix(my_model, data = testing)                              
+Mtarget <- model.matrix(my_model, data = target)                                
+                                                                                
+mmodel <- randomForest(y=factor(training$voto), x=Mtraining, ntree=600, mtry=6) 
+tmodel <- predict(mmodel, newdata=Mtesting)                                     
+target_model <- predict(mmodel, newdata=Mtarget)                                
+                                                                                
+## ajuste en testing                                                            
+print(table(tmodel, testing$voto))                                              
+                                                                                
+## Predicted vote                                                               
+target$voto <- target_model                                                     
+impprel <- rbind(impprel, target)                                               
+                                                                                
+## Predicted vote distribution                                                  
+prop.table(xtabs(~ impprel$voto[impprel$voto != "97"]))                         
 
-target$voto <- tmodel
-impprel <- rbind(impprel, target)
